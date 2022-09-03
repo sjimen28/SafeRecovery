@@ -155,11 +155,11 @@ nabla = inline(g');
 
 for j = 1:6                             % Number of attacks
     if j>1
-        t1(j) = t2(j-1)+Tna+rand(1);    % Initial times of attacks
+        t1(j) = t2(j-1)+Tna;%+rand(1);    % Initial times of attacks
     else
-        t1(j) = Tna+rand(1);            % Times of attacks
+        t1(j) = Tna;%+rand(1);            % Initial times of attacks
     end    
-        t2(j) = t1(j)+Ta;%*rand(1);       % Times of attacks
+        t2(j) = t1(j)+Ta;%*rand(1);       % End times of attacks
 end
     x(:,1) = x0;                % Initial State
     hx(:,1) = hx0;              % Initial Estimate
