@@ -10,7 +10,7 @@
 %   https://www.mathworks.com/matlabcentral/fileexchange/102239-hybrid-equations-toolbox-beta 
 %   (View Version History) 
 %   Copyright @ Hybrid Systems Laboratory (HSL),
-%   Revision: 0.0.0.2 Date: 09/02/2022 17:04:00
+%   Revision: 0.0.0.3 Date: 09/04/2022 1:41:00
 
 clear all
 clc 
@@ -23,14 +23,14 @@ clc
 %   x0, hx0, barE
 %   Modify any parameter in this section to simulate the system/case of interest
 
-% Simulation Horizon
-TSPAN = [0 18];    % Second entry is the maximum amount of seconds allowed
+%% Simulation Horizon
+TSPAN = [0 14];    % Second entry is the maximum amount of seconds allowed
 Ts = 0.001;        % Steptime
 t = 0:Ts:TSPAN(2);
 
 % Attacks
-Ta =1.5;       % Maximum Length of a DoS attack
-Tna = 0.3;      % Minimum lenght of intervals without attacks 
+Ta = 1.2;       % Maximum Length of a DoS attack
+Tna = 1;      % Minimum lenght of intervals without attacks 
 atck = 0;       % Attack flag (1 attack, 0 no attack)
 
 %%% Continuous Dynamics
@@ -60,7 +60,7 @@ else
 end
 
 %%% Lyapunov Function
-P = [10 0 ; 0 1];         % Needs to be symmetric and PD
+P = [1 0 ; 0 1];         % Needs to be symmetric and PD
 if prod(eig(P))>0
     disp('P is positive definite')
 else
@@ -72,7 +72,7 @@ V = @(x) P*x^2;
 % When No attacks:
 % \dot \hat x=A \hatx+B*u + L(Cx-C\hat x) 
 %
-L = [10 0 ;1 1];             % Size 2x2
+L = [2 -1 ;1 2];%[20 -1 ;1 15];             % Size 2x2
 Q = -(A-L*C)'*P-P*(A-L*C);  % Needs to be symmetric and PD
 if prod(eig(Q))>0
     disp('Q is positive definite')
@@ -84,7 +84,7 @@ eig(A-L*C)                  % L is designed so the eig(A-LC) are in the open lef
 % Under attacks:
 % \dot \hat x=A \hatx+B*u + \tildeL(\tildeCx-\tildeC\hat x) 
 %
-tildeL = 20*[0.9 ; -0.4];          % Size 2x1
+tildeL = 4*[1.5 ; -1.4];          % Size 2x1
 eig(A-tildeL*tildeC)        % Some of the eigenvalues are in the open left-half plane
 
 %%% Initial State 
@@ -94,10 +94,10 @@ e0 = x0-hx0;
 
 % Time Bounds
 barE = norm(e0)+0.05;    % Initial error bound
-theta = 0.99;%rand(1);
+theta = 0.1;%rand(1);
 c1 = min(eig(Q));
 c2 = min(eig(P))/max(eig(P));
-C1 = sqrt(c2)*exp(-(1-theta)*c1*c2*Tna/2)
+C1 = sqrt(1/c2)*exp(-(1-theta)*c1*c2*Tna/(2*min(eig(P))))
 delta = C1*barE;
 
 [Phi,hA] = jordan(A-tildeL*tildeC);
@@ -108,13 +108,13 @@ Phi2 = Phi(:,2);        % Block associated to potentially nonnegative eigenvalue
 
 hA11 = hA(1,1);
 hA22 = hA(2,2);
-hP = [50  0; 0 1];            % Needs to be positive definite
+hP = [1  0; 0 1];            % Needs to be positive definite
 if prod(eig(hP))>0
     disp('\hatP is positive definite')
 else
     disp('\hatP is NOT positive definite')
 end
-hQ = -hA11'*P-P*hA11;     % Needs to be symmetric and PD
+hQ = -hA11'*hP-hP*hA11;     % Needs to be symmetric and PD
 if prod(eig(hQ))>0
     disp('\hatQ is positive definite')
 else
@@ -124,19 +124,21 @@ end
 gc1 = min(eig(hQ));
 gc2 = min(eig(hP))/max(eig(hP));
 
-hc1 = norm(Phi)*norm(Phi1)*sqrt(gc2);
+hc1 = norm(Phi)*norm(Phi1)*sqrt(1/gc2);
 hc2 = norm(Phi)*norm(Phi2);
 
-lambda1 = (1-theta)*gc1*gc2/2;
-lambda2 = norm(hA22)
+lambda1 = (1-theta)*gc1*gc2/(2*min(eig(hP)));
+lambda2 = norm(hA22);
 
 fun = @(t) -( hc1*exp(-lambda1*t)+hc2*lambda2*exp(lambda2*t));
-[max_error_time_attacks, C2] = fminbnd(fun,0,Ta); 
-C2=-C2;
-%C1*C2
-%figure(3)
-%hold on
-%plot(0:0.01:Ta,-fun(0:0.01:Ta))
+[max_error_time_attacks, C2] = fminbnd(fun,0,Ta);
+C2 = -C2;
+C2 = -fun(Ta) %!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+C1*C2
+figure(3)
+hold on
+plot(0:0.01:Ta,-fun(0:0.01:Ta))
 %%
 % Control Design
 syms x1 x2
@@ -175,11 +177,11 @@ end
         x(:,i+1) = x(:,i)+(t(i+1)-t(i))*(A*x(:,i)+B*u(i)); % Evolve in state
         hx1t = hx(1,i); hx2t = hx(2,i);
         
-        if j<=6 && (abs(t(i)-t1(j)) <= 0.01 || (atck(i) == 1 && t(i) == 0))        % Check if an attack just begun or the process start with an attack
+        if j<=6 && (abs(t(i)-t1(j)) <= 0.002|| (atck(i) == 1 && t(i) == 0))        % Check if an attack just begun or the process start with an attack
             
             atck(i+1)=1;
 
-        elseif j<=6 && (abs(t(i)-t2(j)) <= 0.01 || (atck(i) == 0 && t(i) == 0))    % Check if an attack just ended or the process starts with no attack
+        elseif j<=6 && (abs(t(i)-t2(j)) <= 0.002 || (atck(i) == 0 && t(i) == 0))    % Check if an attack just ended or the process starts with no attack
 
             atck(i+1) = 0;
 
@@ -201,7 +203,7 @@ end
             e(:,i+1) = e(:,i)+(t(i+1)-t(i))*((A-tildeL*tildeC)*e(:,i));                                 % Evolve in error
             ut = quadprog(eye(2),[0 0],[nabla(hx1t,hx2t)*B h(hx1t,hx2t)],-nabla(hx1t,hx2t)*(A*hx(:,i)+tildeL*(tildeC*x(:,i)-tildeC*hx(:,i))));
 
-        elseif atck(i) == 0     % Evolution when there is no attack
+        else %if atck(i) == 0     % Evolution when there is no attack
 
             % C = Cf(atck(i));
             hx(:,i+1) = hx(:,i)+(t(i+1)-t(i))*(A*hx(:,i)+B*u(i)+L*(C*x(:,i)-C*hx(:,i)));    % Evolve in estimation 
@@ -336,23 +338,23 @@ legend('$x$','$\hat x$','$S$','$X_0$','$\tilde X_0$', '$\hat X_0(x_0)$','$\bar X
 
 %% Debugging
 % Find the indexes of the attacks in the time vector t
-clc
+
 changedIndexes_t1 = diff(atck)>0;
 changedIndexes_t2 = diff(atck)<0;
 t1_indexes=find(changedIndexes_t1);  % Indexes at which attacks are launched
 t2_indexes=find(changedIndexes_t2);  % Indexes at which attacks end
 
-norme(t1_indexes)
-norme(t2_indexes)
+%norme(t1_indexes)
+%norme(t2_indexes)
 
 %disp('Error cummulated during each attack:')
 %norme(t2_indexes)-norme(t1_indexes)  % Change of error over attacks
 
 disp('Factor of increase of error during attack intervals:')
 f1 = norme(t2_indexes)./norme(t1_indexes)
-% This shows that C_2 is not the actual increase over Ta !!
 
 disp('Factor of increase of error during no-attack intervals:')
 f2 = norme(t1_indexes)./[norme(1), norme(t2_indexes(1:5))]
+% This shows that C_1 is not the actual increase over Tna !!
 
 f1.*f2
