@@ -10,7 +10,7 @@
 %   https://www.mathworks.com/matlabcentral/fileexchange/102239-hybrid-equations-toolbox-beta 
 %   (View Version History) 
 %   Copyright @ Hybrid Systems Laboratory (HSL),
-%   Revision: 0.0.0.3 Date: 09/04/2022 1:41:00
+%   Revision: 0.0.0.4 Date: 09/05/2022 12:29:00
 
 clear all
 clc 
@@ -236,13 +236,13 @@ plot(t,hx)
 xlabel('$t$','Interpreter','Latex')
 ylabel('$x$','Interpreter','Latex')
 legend('$x_1$','$x_2$','$\hat x_1$','$\hat x_2$','Interpreter','Latex')
-
+set(gca,'TickLabelInterpreter','latex')
 
 subplot(5,1,2)
 plot(t, e)                              % Plot Error
 ylabel('Error','Interpreter','Latex')
 legend('$e_1$','$e_2$','Interpreter','Latex')
-
+set(gca,'TickLabelInterpreter','latex')
 
 subplot(5,1,3)
 norme = @(t)(e(1,t).^2+e(2,t).^2).^0.5;
@@ -254,20 +254,21 @@ plot([t(1), t(end)], barE*C1*C2*[1, 1])
 xlabel('$t$','Interpreter','Latex')
 ylabel('norm(Error)','Interpreter','Latex')
 legend('$|e|$','$\bar E$','$C_1 C_2 \bar E$','Interpreter','Latex')
-
+set(gca,'TickLabelInterpreter','latex')
 
 subplot(5,1,4)
 plot(t, atck)                           % Plot Error
 xlabel('$t$','Interpreter','Latex')
 ylabel('Attack','Interpreter','Latex')
 ylim([-0.2, 1.2])
-legend('1 - Attack', '0 - No attack')
-
+legend('$1 - Attack$', '0 - No attack','Interpreter','Latex')
+set(gca,'TickLabelInterpreter','latex')
 
 subplot(5,1,5)
 plot(t, u)                              % Plot Action for ContSolution
 xlabel('$t$','Interpreter','Latex')
 ylabel('$u$','Interpreter','Latex')
+set(gca,'TickLabelInterpreter','latex')
 
 %%
 figure (2)
@@ -332,9 +333,10 @@ fplot(xc,yc)
 hold on
 barX0 = fimplicit(h);       % barX0 set defined by barrier function
 
+set(gca,'TickLabelInterpreter','latex')
 xlabel('$x_1$','Interpreter','Latex')
 ylabel('$x_2$','Interpreter','Latex')
-legend('$x$','$\hat x$','$S$','$X_0$','$\tilde X_0$', '$\hat X_0(x_0)$','$\bar X_0$','Interpreter','Latex')
+legend('$x$','$\hat x$','$S$','$X_0$','$\tilde X$', '$\hat X_0(x_0)$','$\bar X$','Interpreter','Latex')
 
 %% Debugging
 % Find the indexes of the attacks in the time vector t
